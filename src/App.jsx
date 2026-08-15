@@ -9,10 +9,11 @@ import ActiveWorkout from './pages/ActiveWorkout.jsx';
 import History from './pages/History.jsx';
 import Progress from './pages/Progress.jsx';
 import Profile from './pages/Profile.jsx';
-import TimedSession from './pages/TimedSession.jsx';
+import Browse from './pages/Browse.jsx';
+import IntervalSession from './pages/IntervalSession.jsx';
 
 // Routes where the bottom nav should be hidden (full-screen flows)
-const HIDE_NAV = ['/', '/onboarding', '/workout', '/cardio', '/mobility'];
+const HIDE_NAV = ['/', '/onboarding', '/workout', '/session', '/cardio', '/mobility'];
 
 export default function App() {
   const { session, profile, loading } = useAuth();
@@ -58,8 +59,11 @@ export default function App() {
         <Route path="/history" element={<History />} />
         <Route path="/progress" element={<Progress />} />
         <Route path="/profile" element={<Profile />} />
-        <Route path="/cardio/:id" element={<TimedSession kind="cardio" />} />
-        <Route path="/mobility/:id" element={<TimedSession kind="mobility" />} />
+        <Route path="/browse" element={<Browse />} />
+        <Route path="/session/:id" element={<IntervalSession />} />
+        {/* Legacy links still work — routed through the interval player */}
+        <Route path="/cardio/:id" element={<IntervalSession />} />
+        <Route path="/mobility/:id" element={<IntervalSession />} />
         <Route path="*" element={<Navigate to="/today" replace />} />
       </Routes>
       {showNav && <BottomNav />}

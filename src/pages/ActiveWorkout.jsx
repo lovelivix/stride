@@ -8,6 +8,8 @@ import { nextAlternative } from '../data/alternatives.js';
 import { getSuggestedWeight, getSuggestedHold, isLocalPR } from '../lib/progressionEngine.js';
 import SetLogger from '../components/workout/SetLogger.jsx';
 import WorkoutSummary from '../components/workout/WorkoutSummary.jsx';
+import IntervalPlayer from '../components/workout/IntervalPlayer.jsx';
+import { warmupForDay } from '../data/intervalWorkouts.js';
 import { T } from '../lib/theme.js';
 
 export default function ActiveWorkout() {
@@ -26,7 +28,8 @@ export default function ActiveWorkout() {
     return w && lowEnergy ? applyLowEnergy(w) : w;
   }, [programme, day, location, profile, lowEnergy]);
 
-  const [phase, setPhase] = useState('active'); // active | rpe | summary
+  const [phase, setPhase] = useState('warmup'); // warmup | active | rpe | summary
+  const [warmupPlaying, setWarmupPlaying] = useState(false);
   const [index, setIndex] = useState(0);
   const [overrides, setOverrides] = useState({}); // index -> resolved exercise (after swap)
   const [loggedSets, setLoggedSets] = useState([]);
@@ -103,6 +106,45 @@ export default function ActiveWorkout() {
       <div className="page-no-nav">
         <p className="muted">Workout not found.</p>
         <button className="btn" onClick={() => navigate('/today')}>Back to Today</button>
+      </div>
+    );
+  }
+
+  // ── Warm-up offer (shown before the main workout) ──────────────────
+  const warmup = warmupForDay(workout.label);
+  if (phase === 'warmup') {
+    if (warmupPlaying) {
+      return (
+        <IntervalPlayer
+          workout={warmup}
+          onComplete={() => { setWarmupPlaying(false); setPhase('active'); window.scrollTo({ top: 0 }); }}
+          onQuit={() => { setWarmupPlaying(false); setPhase('active'); window.scrollTo({ top: 0 }); }}
+        />
+      );
+    }
+    return (
+      <div className="page-no-nav">
+        <div style={styles.topBar}>
+          <Link to="/today" style={styles.close}>✕</Link>
+          <div style={{ textAlign: 'center' }}>
+            <div style={styles.dayName}>{workout.label}</div>
+            <div style={styles.progress}>Ready when you are</div>
+          </div>
+          <span style={{ width: 36 }} />
+        </div>
+        <div className="card" style={{ textAlign: 'center', marginTop: 12 }}>
+          <div style={{ fontSize: 40 }}>{warmup.emoji}</div>
+          <h1 style={{ fontSize: 32, marginTop: 6 }}>Warm up first?</h1>
+          <p className="muted" style={{ fontSize: 14, lineHeight: 1.5, margin: '8px 0 4px' }}>
+            {warmup.name} — about {warmup.duration} minutes of easy movement to get ready. Hands-free, with beeps.
+          </p>
+          <button className="btn" style={{ marginTop: 12 }} onClick={() => setWarmupPlaying(true)}>
+            ▶ Start warm-up
+          </button>
+          <button className="btn btn-ghost" style={{ marginTop: 10 }} onClick={() => { setPhase('active'); window.scrollTo({ top: 0 }); }}>
+            Skip to workout
+          </button>
+        </div>
       </div>
     );
   }
@@ -217,7 +259,7 @@ export default function ActiveWorkout() {
             <div style={{ fontSize: 26 }}>🧘‍♀️</div>
             <div style={{ fontWeight: 700, marginTop: 4 }}>Add {mob.name}?</div>
             <div className="muted" style={{ fontSize: 13, margin: '4px 0 12px' }}>{mob.duration} min · {mob.desc}</div>
-            <button className="btn btn-ghost" onClick={() => navigate(`/mobility/${mob.id}`)}>Start mobility →</button>
+            <button className="btn btn-ghost" onClick={() => navigate(`/session/${mob.id}`)}>Start mobility →</button>
           </div>
         )}
       </div>

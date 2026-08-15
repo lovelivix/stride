@@ -3,8 +3,9 @@ import { NavLink } from 'react-router-dom';
 const items = [
   { to: '/today', label: 'Today', icon: '🏠' },
   { to: '/programme', label: 'Plan', icon: '📋' },
+  { to: '/browse', label: 'Workouts', icon: '🔥' },
   { to: '/history', label: 'History', icon: '📈' },
-  { to: '/progress', label: 'Progress', icon: '📸' },
+  { to: '/progress', label: 'Stats', icon: '📸' },
   { to: '/profile', label: 'You', icon: '⚙️' },
 ];
 
@@ -45,12 +46,12 @@ const styles = {
     alignItems: 'center',
     gap: 3,
     color: 'var(--muted)',
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: 600,
     flex: 1,
     padding: '6px 0',
   },
   active: { color: 'var(--pink)' },
-  icon: { fontSize: 20, lineHeight: 1 },
+  icon: { fontSize: 19, lineHeight: 1 },
   label: { letterSpacing: 0.2 },
 };

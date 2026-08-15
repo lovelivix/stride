@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/AuthContext.jsx';
 import { supabase } from '../lib/supabase.js';
-import { PROGRAMMES, getCardioForProfile, MOBILITY_SESSIONS } from '../data/programmes.js';
+import { PROGRAMMES } from '../data/programmes.js';
 import { getDailySuggestion } from '../lib/smartSuggestions.js';
 import { T } from '../lib/theme.js';
 
@@ -49,8 +49,6 @@ export default function Today() {
 
   if (loading) return <div className="page"><div className="spinner" /></div>;
 
-  const cardio = getCardioForProfile(profile?.is_glp1);
-
   return (
     <div className="page">
       <div style={{ marginBottom: 4 }}>
@@ -83,7 +81,7 @@ export default function Today() {
               Start {programme?.days?.[suggestion.day]?.label?.split('—')[0]?.trim() || `Day ${suggestion.day}`} →
             </button>
           ) : (
-            <button className="btn btn-coral" onClick={() => navigate('/programme')}>Browse sessions</button>
+            <button className="btn btn-coral" onClick={() => navigate('/browse')}>Browse workouts</button>
           )}
         </div>
       )}
@@ -122,13 +120,13 @@ export default function Today() {
         <h2 style={styles.h2}>Quick add</h2>
       </div>
       <div style={styles.quickGrid}>
-        <button style={styles.quick} onClick={() => navigate('/programme')}>
-          <span style={{ fontSize: 24 }}>📋</span><span>Full plan</span>
+        <button style={styles.quick} onClick={() => navigate('/session/warmup_full')}>
+          <span style={{ fontSize: 24 }}>🌅</span><span>Warm-up</span>
         </button>
-        <button style={styles.quick} onClick={() => navigate(`/cardio/${cardio[0]?.id || 'hiit_20'}`)}>
-          <span style={{ fontSize: 24 }}>{cardio[0]?.emoji || '🔥'}</span><span>Cardio</span>
+        <button style={styles.quick} onClick={() => navigate('/browse')}>
+          <span style={{ fontSize: 24 }}>🔥</span><span>Workouts</span>
         </button>
-        <button style={styles.quick} onClick={() => navigate(`/mobility/${MOBILITY_SESSIONS[0].id}`)}>
+        <button style={styles.quick} onClick={() => navigate('/session/mob_full')}>
           <span style={{ fontSize: 24 }}>🧘‍♀️</span><span>Mobility</span>
         </button>
         <button style={styles.quick} onClick={() => navigate('/progress')}>

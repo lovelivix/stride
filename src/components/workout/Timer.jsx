@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { T } from '../../lib/theme.js';
+import { countBeep, doneBeep, unlockAudio } from '../../lib/beep.js';
 
 /**
  * Countdown timer for holds, cardio blocks and rest.
@@ -10,7 +11,7 @@ import { T } from '../../lib/theme.js';
  *  - label: small caption under the clock
  *  - countUp: if true, counts up from 0 instead of down (for open holds)
  */
-export default function Timer({ seconds = 60, autoStart = false, onComplete, label, countUp = false }) {
+export default function Timer({ seconds = 60, autoStart = false, onComplete, label, countUp = false, beep = true }) {
   const [remaining, setRemaining] = useState(countUp ? 0 : seconds);
   const [running, setRunning] = useState(autoStart);
   const intervalRef = useRef(null);
@@ -21,10 +22,13 @@ export default function Timer({ seconds = 60, autoStart = false, onComplete, lab
     intervalRef.current = setInterval(() => {
       setRemaining((r) => {
         if (countUp) return r + 1;
+        const next = r - 1;
+        if (beep && (next === 3 || next === 2 || next === 1)) countBeep();
         if (r <= 1) {
           clearInterval(intervalRef.current);
           if (!doneRef.current) {
             doneRef.current = true;
+            if (beep) doneBeep();
             onComplete && onComplete();
           }
           return 0;
@@ -73,7 +77,7 @@ export default function Timer({ seconds = 60, autoStart = false, onComplete, lab
       </div>
       {label && <div style={styles.label}>{label}</div>}
       <div style={styles.controls}>
-        <button className="btn btn-sm" style={{ minWidth: 92 }} onClick={() => setRunning((v) => !v)}>
+        <button className="btn btn-sm" style={{ minWidth: 92 }} onClick={() => { unlockAudio(); setRunning((v) => !v); }}>
           {running ? '⏸ Pause' : '▶ Start'}
         </button>
         <button className="btn btn-ghost btn-sm" onClick={reset}>
