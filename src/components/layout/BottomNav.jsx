@@ -4,8 +4,7 @@ const items = [
   { to: '/today', label: 'Today', icon: '🏠' },
   { to: '/programme', label: 'Plan', icon: '📋' },
   { to: '/browse', label: 'Workouts', icon: '🔥' },
-  { to: '/history', label: 'History', icon: '📈' },
-  { to: '/progress', label: 'Stats', icon: '📸' },
+  { to: '/activity', label: 'Activity', icon: '📊' },
   { to: '/profile', label: 'You', icon: '⚙️' },
 ];
 

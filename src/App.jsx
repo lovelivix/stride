@@ -9,6 +9,8 @@ import ActiveWorkout from './pages/ActiveWorkout.jsx';
 import History from './pages/History.jsx';
 import Progress from './pages/Progress.jsx';
 import Profile from './pages/Profile.jsx';
+import Activity from './pages/Activity.jsx';
+import Feedback from './pages/Feedback.jsx';
 import Browse from './pages/Browse.jsx';
 import IntervalSession from './pages/IntervalSession.jsx';
 import AmrapSession from './pages/AmrapSession.jsx';
@@ -80,6 +82,8 @@ export default function App() {
         <Route path="/today" element={<Today />} />
         <Route path="/programme" element={<Programme />} />
         <Route path="/workout/:day" element={<ActiveWorkout />} />
+        <Route path="/activity" element={<Activity />} />
+        <Route path="/feedback" element={<Feedback />} />
         <Route path="/history" element={<History />} />
         <Route path="/progress" element={<Progress />} />
         <Route path="/profile" element={<Profile />} />

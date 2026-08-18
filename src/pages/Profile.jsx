@@ -101,6 +101,15 @@ export default function Profile() {
         </button>
       </div>
 
+      <button className="card" style={styles.feedback} onClick={() => navigate('/feedback')}>
+        <span style={{ fontSize: 22 }}>💡</span>
+        <span style={{ flex: 1, textAlign: 'left' }}>
+          <div style={{ fontWeight: 700, fontSize: 14 }}>Log an improvement</div>
+          <div className="muted" style={{ fontSize: 12 }}>Ideas, bugs, requests — jot them down for Claude.</div>
+        </span>
+        <span style={{ fontSize: 18, color: 'var(--muted)' }}>›</span>
+      </button>
+
       <div style={{ marginTop: 20, textAlign: 'center' }}>
         <div className="muted" style={{ fontSize: 12, marginBottom: 10 }}>{user.email}</div>
         <button className="btn btn-ghost" onClick={async () => { await signOut(); navigate('/'); }}>Sign out</button>
@@ -123,4 +132,5 @@ const styles = {
   switchOn: { background: T.pink },
   knob: { display: 'block', width: 22, height: 22, borderRadius: 999, background: '#fff', transition: 'transform .18s' },
   knobOn: { transform: 'translateX(18px)' },
+  feedback: { display: 'flex', alignItems: 'center', gap: 12, width: '100%', marginTop: 16, padding: 15 },
 };
