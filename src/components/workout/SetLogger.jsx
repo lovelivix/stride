@@ -1,19 +1,11 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Timer from './Timer.jsx';
+import { goBeep, unlockAudio } from '../../lib/beep.js';
 import { T } from '../../lib/theme.js';
 
 /**
  * Logs all sets for ONE exercise. Fully CONTROLLED — the parent owns the
  * `sets` array (so it survives navigating away and back).
- * Props:
- *  - exercise: resolved workout item
- *  - lastSets: the user's sets for this base exercise last time
- *  - suggestion: { weight, note, readyToProgress } | { secs, note }
- *  - isPR: (baseId, weight, reps) => boolean  (live display only)
- *  - sets: controlled array of { weight, reps, hold, completed, is_pr }
- *  - onSetsChange: (nextSets) => void
- *  - onSwap / onSkip / onDone / onBack: () => void
- *  - canGoBack: boolean
  */
 export default function SetLogger({
   exercise,
@@ -34,13 +26,45 @@ export default function SetLogger({
   const isBodyweight = type === 'bodyweight_reps';
 
   const targetReps = exercise.reps_max || exercise.reps_min;
+  const targetHold = exercise.hold_secs || 30;
   const completedCount = sets.filter((s) => s.completed).length;
   const allDone = sets.length > 0 && completedCount === sets.length;
 
-  const setAt = (i, patch) => onSetsChange(sets.map((s, idx) => (idx === i ? { ...s, ...patch } : s)));
+  const setsRef = useRef(sets);
+  setsRef.current = sets;
+  const setAt = (i, patch) => onSetsChange(setsRef.current.map((s, idx) => (idx === i ? { ...s, ...patch } : s)));
+
+  // ── Live hold timer (planks etc.) ──────────────────────────────────
+  const [timing, setTiming] = useState(null); // index of the set being timed
+  const elapsedRef = useRef(0);
+  const beepedRef = useRef(false);
+  useEffect(() => {
+    if (timing == null) return undefined;
+    const t = setInterval(() => {
+      elapsedRef.current += 1;
+      const secs = elapsedRef.current;
+      if (!beepedRef.current && secs >= targetHold) {
+        beepedRef.current = true;
+        goBeep(); // you hit the target hold
+      }
+      setAt(timing, { hold: String(secs) });
+    }, 1000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timing]);
+
+  const startHold = (i) => {
+    unlockAudio();
+    elapsedRef.current = 0;
+    beepedRef.current = false;
+    setAt(i, { hold: '0' });
+    setTiming(i);
+  };
+  const stopHold = () => setTiming(null);
 
   const completeSet = (i) => {
-    const s = sets[i];
+    if (timing === i) stopHold();
+    const s = setsRef.current[i];
     const weight = isBodyweight || isHold || isCardio ? null : s.weight === '' ? null : parseFloat(s.weight);
     const reps = isHold || isCardio ? null : s.reps === '' ? null : parseInt(s.reps, 10);
     const hold = isHold ? (s.hold === '' ? null : parseInt(s.hold, 10)) : null;
@@ -81,7 +105,7 @@ export default function SetLogger({
             {exercise.sets} sets
             {exercise.per_side ? ' · per side' : ''}
             {targetReps ? ` · ${exercise.reps_min}${exercise.reps_max && exercise.reps_max !== exercise.reps_min ? '–' + exercise.reps_max : ''} reps` : ''}
-            {exercise.hold_secs ? ` · ${exercise.hold_secs}s hold` : ''}
+            {isHold ? ` · ${exercise.hold_secs}${exercise.hold_max ? '–' + exercise.hold_max : ''}s hold` : ''}
           </div>
         </div>
         <div style={styles.count}>{completedCount}/{sets.length}</div>
@@ -103,13 +127,47 @@ export default function SetLogger({
             </button>
           )}
         </div>
+      ) : isHold ? (
+        // ── Hold sets: a proper count-up timer per set ──────────────
+        <div style={styles.setList}>
+          {sets.map((s, i) => {
+            const isTiming = timing === i;
+            const secs = isTiming ? elapsedRef.current : s.hold || 0;
+            return (
+              <div key={i} style={{ ...styles.holdRow, ...(s.completed ? styles.setRowDone : {}), ...(isTiming ? styles.holdRowActive : {}) }}>
+                <div style={styles.setNo}>{i + 1}</div>
+                <div style={styles.holdClock}>
+                  <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 30, color: isTiming ? T.pink : 'var(--text)' }}>
+                    {String(s.hold || 0)}s
+                  </span>
+                  <span style={styles.holdTarget}>target {targetHold}s</span>
+                </div>
+                {!s.completed && (
+                  <button
+                    style={{ ...styles.holdBtn, ...(isTiming ? styles.holdBtnStop : {}) }}
+                    onClick={() => (isTiming ? stopHold() : startHold(i))}
+                  >
+                    {isTiming ? '⏸' : '▶'}
+                  </button>
+                )}
+                <button
+                  style={{ ...styles.check, ...(s.completed ? styles.checkDone : {}) }}
+                  onClick={() => (s.completed ? setAt(i, { completed: false, is_pr: false }) : completeSet(i))}
+                >
+                  {s.completed ? '✓' : '✓'}
+                </button>
+              </div>
+            );
+          })}
+          <div style={styles.holdHint}>Tap ▶ to start the timer — it beeps when you reach the target. Tap ✓ to log the hold.</div>
+        </div>
       ) : (
         <div style={styles.setList}>
           {sets.map((s, i) => (
             <div key={i} style={{ ...styles.setRow, ...(s.completed ? styles.setRowDone : {}) }}>
               <div style={styles.setNo}>{i + 1}</div>
 
-              {!isHold && !isBodyweight && (
+              {!isBodyweight && (
                 <label style={styles.field}>
                   <span style={styles.fieldLbl}>kg</span>
                   <input className="input" style={styles.numInput} type="number" inputMode="decimal" value={s.weight}
@@ -117,21 +175,11 @@ export default function SetLogger({
                 </label>
               )}
 
-              {!isHold && (
-                <label style={styles.field}>
-                  <span style={styles.fieldLbl}>reps</span>
-                  <input className="input" style={styles.numInput} type="number" inputMode="numeric" value={s.reps}
-                    onChange={(e) => setAt(i, { reps: e.target.value })} />
-                </label>
-              )}
-
-              {isHold && (
-                <label style={styles.field}>
-                  <span style={styles.fieldLbl}>secs</span>
-                  <input className="input" style={styles.numInput} type="number" inputMode="numeric" value={s.hold}
-                    onChange={(e) => setAt(i, { hold: e.target.value })} />
-                </label>
-              )}
+              <label style={styles.field}>
+                <span style={styles.fieldLbl}>reps</span>
+                <input className="input" style={styles.numInput} type="number" inputMode="numeric" value={s.reps}
+                  onChange={(e) => setAt(i, { reps: e.target.value })} />
+              </label>
 
               <button title="Repeat last set" style={styles.miniBtn} onClick={() => repeatLast(i)}>🔁</button>
 
@@ -143,7 +191,7 @@ export default function SetLogger({
               </button>
             </div>
           ))}
-          <button style={styles.addSet} onClick={() => onSetsChange([...sets, { weight: sets[sets.length - 1]?.weight || '', reps: sets[sets.length - 1]?.reps || (targetReps ? String(targetReps) : ''), hold: sets[sets.length - 1]?.hold || '', completed: false, is_pr: false }])}>
+          <button style={styles.addSet} onClick={() => onSetsChange([...sets, { weight: sets[sets.length - 1]?.weight || '', reps: sets[sets.length - 1]?.reps || (targetReps ? String(targetReps) : ''), hold: '', completed: false, is_pr: false }])}>
             + Add a set
           </button>
         </div>
@@ -176,6 +224,13 @@ const styles = {
   setList: { display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 },
   setRow: { display: 'flex', alignItems: 'flex-end', gap: 8, padding: 8, borderRadius: 12, background: 'var(--off)' },
   setRowDone: { background: '#eafaef' },
+  holdRow: { display: 'flex', alignItems: 'center', gap: 10, padding: 10, borderRadius: 12, background: 'var(--off)' },
+  holdRowActive: { background: '#fff2f5', outline: `1.5px solid ${T.pink}` },
+  holdClock: { flex: 1, display: 'flex', flexDirection: 'column', lineHeight: 1 },
+  holdTarget: { fontSize: 11, color: 'var(--muted)', fontWeight: 600, marginTop: 2 },
+  holdBtn: { width: 46, height: 40, borderRadius: 12, background: T.pink, color: '#fff', fontSize: 16, flexShrink: 0 },
+  holdBtnStop: { background: 'var(--amber)' },
+  holdHint: { fontSize: 11, color: 'var(--muted)', marginTop: 2, lineHeight: 1.4 },
   setNo: { width: 22, height: 22, borderRadius: 999, background: 'var(--white)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, marginBottom: 8, flexShrink: 0 },
   field: { display: 'flex', flexDirection: 'column', gap: 3, flex: 1 },
   fieldLbl: { fontSize: 10, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, paddingLeft: 2 },

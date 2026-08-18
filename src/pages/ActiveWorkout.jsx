@@ -61,7 +61,7 @@ export default function ActiveWorkout() {
     return w && lowEnergy ? applyLowEnergy(w) : w;
   }, [programme, day, location, profile, lowEnergy]);
 
-  const [phase, setPhase] = useState(saved?.phase || 'warmup'); // warmup | active | rpe | summary
+  const [phase, setPhase] = useState(saved?.phase || 'mode'); // mode | warmup | active | rpe | summary | circuit | circuitdone
   const [warmupPlaying, setWarmupPlaying] = useState(false);
   const [index, setIndex] = useState(saved?.index || 0);
   const [overrides, setOverrides] = useState(saved?.overrides || {}); // index -> resolved exercise (after swap)
@@ -170,7 +170,7 @@ export default function ActiveWorkout() {
 
   // Snapshot progress on every change so a background reload can resume here.
   useEffect(() => {
-    if (phase === 'summary') return;
+    if (phase === 'summary' || phase === 'circuitdone') return;
     writeSaved(storageKey, { phase, index, setsByIndex, overrides, location, startedAt: startTime.current });
   }, [phase, index, setsByIndex, overrides, location, storageKey]);
 
@@ -360,7 +360,77 @@ export default function ActiveWorkout() {
     window.scrollTo({ top: 0 });
   };
 
+  const logCircuit = async () => {
+    const durationMins = Math.max(1, Math.round((Date.now() - startTime.current) / 60000));
+    await supabase.from('sessions').insert({
+      user_id: user.id,
+      workout_id: `${programme.id}_${day}`,
+      programme_id: programme.id,
+      duration_mins: durationMins,
+      location,
+      notes: 'Timed circuit',
+      total_volume_kg: 0,
+    });
+    clearSaved(storageKey);
+    setPhase('circuitdone');
+    window.scrollTo({ top: 0 });
+  };
+
   // ── RENDER ──────────────────────────────────────────────────────────
+  if (phase === 'mode') {
+    return (
+      <div className="page-no-nav">
+        <div style={styles.topBar}>
+          <Link to="/today" style={styles.close} onClick={() => clearSaved(storageKey)}>✕</Link>
+          <div style={{ textAlign: 'center' }}>
+            <div style={styles.dayName}>{workout.label}</div>
+            <div style={styles.progress}>Week {profile?.current_week || 1}</div>
+          </div>
+          <span style={{ width: 36 }} />
+        </div>
+        <h1 style={{ fontSize: 34, marginTop: 10, marginBottom: 4 }}>How today?</h1>
+        <p className="muted" style={{ fontSize: 14, marginBottom: 16 }}>Same exercises, two ways to train.</p>
+        <button className="card" style={styles.modeCard} onClick={() => { setPhase('warmup'); window.scrollTo({ top: 0 }); }}>
+          <div style={{ fontSize: 34 }}>💪</div>
+          <div style={styles.modeName}>Log weights &amp; reps</div>
+          <div style={styles.modeDesc}>Track your sets, weights and PRs. Progressive strength — the main way.</div>
+        </button>
+        <button className="card" style={styles.modeCard} onClick={() => { setPhase('circuit'); window.scrollTo({ top: 0 }); }}>
+          <div style={{ fontSize: 34 }}>🔄</div>
+          <div style={styles.modeName}>Timed circuit</div>
+          <div style={styles.modeDesc}>Same moves, hands-free with beeps and short rests. More cardio, no logging.</div>
+        </button>
+      </div>
+    );
+  }
+
+  if (phase === 'circuit') {
+    const circuitWorkout = buildCircuitFromWorkout(workout);
+    return (
+      <IntervalPlayer
+        workout={circuitWorkout}
+        onComplete={logCircuit}
+        onQuit={() => { clearSaved(storageKey); navigate('/today'); }}
+      />
+    );
+  }
+
+  if (phase === 'circuitdone') {
+    return (
+      <div className="page-no-nav">
+        <div style={{ textAlign: 'center', paddingTop: 40 }}>
+          <div style={styles.tickBig}>✓</div>
+          <h1 style={{ fontSize: 38, marginTop: 8 }}>Circuit done!</h1>
+          <p className="muted" style={{ fontSize: 15, margin: '6px 0 20px' }}>{workout.label} — logged to your history. 🔥</p>
+          <button className="btn" onClick={() => navigate('/today')}>Home</button>
+          {workout.mobility_addon && (
+            <button className="btn btn-ghost" style={{ marginTop: 10 }} onClick={() => navigate('/session/mob_full')}>Cool down with mobility →</button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   if (phase === 'summary') {
     const mob = MOBILITY_SESSIONS.find((m) => m.best_after?.includes(day)) || MOBILITY_SESSIONS[0];
     return (
@@ -496,6 +566,24 @@ export default function ActiveWorkout() {
   );
 }
 
+// Turn a built strength workout into a timed-circuit interval workout.
+function buildCircuitFromWorkout(workout) {
+  return {
+    id: `circuit_${workout.day_key}`,
+    name: `${workout.label}`,
+    emoji: '🔄',
+    duration: undefined,
+    work_secs: 40,
+    rest_secs: 20,
+    rounds: (workout.exercises?.length || 0) <= 6 ? 2 : 1,
+    desc: 'Timed circuit — move through the exercises with short rests. Hands-free, no logging.',
+    blocks: (workout.exercises || []).map((e) => ({
+      name: e.name + (e.per_side ? ' (alternate sides)' : ''),
+      cue: e.cue || '',
+    })),
+  };
+}
+
 function makeInitialSets(ex, suggestion, lastSets) {
   const targetReps = ex.reps_max || ex.reps_min;
   const suggested = suggestion?.weight ?? null;
@@ -538,6 +626,10 @@ const styles = {
   jumpDone: { background: '#6fd08a' },
   jumpStarted: { background: T.amber },
   jumpHint: { fontSize: 11, color: 'var(--muted)', textAlign: 'center', marginTop: 8 },
+  modeCard: { display: 'block', width: '100%', textAlign: 'left', padding: 18, marginBottom: 12 },
+  modeName: { fontFamily: "'Bebas Neue', sans-serif", fontSize: 24, lineHeight: 1, marginTop: 8 },
+  modeDesc: { fontSize: 13, color: 'var(--muted)', marginTop: 5, lineHeight: 1.45 },
+  tickBig: { width: 64, height: 64, borderRadius: 999, background: T.lime, color: '#093', fontSize: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px' },
   lbl: { display: 'block', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, color: 'var(--muted)', marginBottom: 6 },
   glp1Warn: { background: '#f3ecff', color: '#6a3fb0', borderRadius: 12, padding: '10px 12px', fontSize: 13, marginTop: 14, lineHeight: 1.45 },
 };
