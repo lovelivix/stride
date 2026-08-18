@@ -321,6 +321,30 @@ export const INTERVAL_WORKOUTS = {
       { name: 'Supine Twist (Right)', cue: 'Roll gently the other way.' },
     ],
   },
+  mob_plantar: {
+    id: 'mob_plantar',
+    name: 'Plantar Fasciitis Relief',
+    category: 'Mobility',
+    emoji: '🦶',
+    difficulty: 'All levels',
+    duration: 9,
+    work_secs: 45,
+    rest_secs: 0,
+    rounds: 1,
+    desc: 'Gentle stretches and strengthening to ease sore heels and arches. Never push into sharp pain — see a physio if it persists.',
+    blocks: [
+      { name: 'Wall Calf Stretch (Left)', cue: 'Back leg straight, heel pressed down, lean into the wall. Feel the upper calf.' },
+      { name: 'Wall Calf Stretch (Right)', cue: 'Switch sides. Slow and steady, no bouncing.' },
+      { name: 'Soleus Stretch (Left)', cue: 'Same position but soften the back knee — the stretch drops lower.' },
+      { name: 'Soleus Stretch (Right)', cue: 'Switch sides.' },
+      { name: 'Plantar Fascia Stretch (Left)', cue: 'Seated, cross ankle over knee, gently pull the toes back. Stretch the arch.' },
+      { name: 'Plantar Fascia Stretch (Right)', cue: 'Switch feet. Ease into it — no sharp pain.' },
+      { name: 'Toe / Towel Scrunches', cue: 'Scrunch the toes (or a towel) toward you, then release. Wakes up the arch.' },
+      { name: 'Seated Calf Raises', cue: 'Rise slow, lower even slower. Builds the calf and supports the arch.' },
+      { name: 'Arch Roll (Left)', cue: 'Roll the arch over a ball or bottle — firm pressure, not painful.' },
+      { name: 'Arch Roll (Right)', cue: 'Switch feet. Finish relaxed.' },
+    ],
+  },
 };
 
 // Category display order + labels for the Browse screen

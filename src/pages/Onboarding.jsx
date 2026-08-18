@@ -12,7 +12,7 @@ const GOALS = [
   { id: 'heart_health', label: 'Heart health', emoji: '❤️' },
 ];
 
-const HOME_KIT = ['bodyweight', '4kg', '8kg', '12kg', 'bands'];
+const HOME_KIT = ['bodyweight', '4kg', '7.5kg', 'band', 'kettlebell'];
 const GYM_KIT = ['dumbbells', 'barbells', 'cables', 'machines', 'smith'];
 
 export default function Onboarding() {

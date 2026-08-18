@@ -170,9 +170,9 @@ export function getAlternative(exercise, location, profile) {
     return gymKey ? alts[gymKey] : exercise.id;
   }
 
-  // Home
-  if (homeKit.includes('12kg') && alts.home_heavy) return alts.home_heavy;
-  if (homeKit.includes('8kg') && alts.home_heavy) return alts.home_heavy;
+  // Home — treat 7.5kg dumbbells / a kettlebell / heavier plates as "heavy"
+  const heavyKit = ['12kg', '8kg', '7.5kg', 'kettlebell'];
+  if (heavyKit.some((k) => homeKit.includes(k)) && alts.home_heavy) return alts.home_heavy;
   if (homeKit.includes('4kg') && alts.home_light) return alts.home_light;
   if (alts.home_bodyweight) return alts.home_bodyweight;
   if (alts.standard) return alts.standard;
