@@ -9,6 +9,6 @@
 
 export const FAMILY = [
   { id: 'olivia', name: 'Olivia', email: 'olivialrobinson@me.com', color: '#FF5C7A', emoji: '💪' },
-  { id: 'katie', name: 'Katie', email: 'katie@stride.family', color: '#5CB8FF', emoji: '❤️' },
-  { id: 'alex', name: 'Alex', email: 'alex@stride.family', color: '#8B6FE8', emoji: '🏋️' },
+  { id: 'katie', name: 'Katie', email: 'katiejsaker@me.com', color: '#5CB8FF', emoji: '❤️' },
+  { id: 'alex', name: 'Alex', email: 'alex.k.naylor@gmail.com', color: '#8B6FE8', emoji: '🏋️' },
 ];

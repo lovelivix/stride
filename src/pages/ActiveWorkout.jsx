@@ -49,6 +49,7 @@ export default function ActiveWorkout() {
   useEffect(() => {
     if (!user || !workout) return;
     (async () => {
+      try {
       const baseIds = [...new Set(workout.exercises.map((e) => e.base_id))];
       const workoutId = `${programme.id}_${day}`;
 
@@ -97,10 +98,42 @@ export default function ActiveWorkout() {
       bestMap.current = best;
       lastRPE.current = lastAny?.[0]?.rpe ?? null;
       setLastSessionVolume(lastSame?.[0]?.total_volume_kg ?? null);
-      setPriorLoaded(true);
+      } catch (e) {
+        // Never let a history-load hiccup block the workout from opening.
+        // eslint-disable-next-line no-console
+        console.warn('[STRIDE] history load failed, continuing', e);
+      } finally {
+        setPriorLoaded(true);
+      }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, day, programme?.id]);
+
+  // ── Hooks below MUST stay above the early returns (Rules of Hooks) ──
+  const displayBest = useRef({});
+
+  const suggestionFor = (ex) => {
+    const prior = priorSets.current[ex.base_id] || [];
+    if (ex.tracking_type === 'hold') {
+      const lastHold = prior[0]?.hold_secs;
+      return getSuggestedHold(lastHold, ex.hold_secs || 30);
+    }
+    if (ex.tracking_type === 'weight_reps') {
+      return getSuggestedWeight(ex.base_id, [prior], lastRPE.current, { reps_min: ex.reps_min, reps_max: ex.reps_max });
+    }
+    return {};
+  };
+
+  // Initialise a not-yet-seen exercise's sets when we first land on it.
+  useEffect(() => {
+    if (!priorLoaded || !workout) return;
+    if (setsByIndex[index]) return;
+    const ex = overrides[index] || workout.exercises[index];
+    if (!ex) return;
+    const init = makeInitialSets(ex, suggestionFor(ex), priorSets.current[ex.base_id] || []);
+    setSetsByIndex((prev) => (prev[index] ? prev : { ...prev, [index]: init }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [index, priorLoaded]);
 
   if (!programme || !workout) {
     return (
@@ -153,38 +186,14 @@ export default function ActiveWorkout() {
   const current = overrides[index] || workout.exercises[index];
   const total = workout.exercises.length;
 
-  const suggestionFor = (ex) => {
-    const prior = priorSets.current[ex.base_id] || [];
-    if (ex.tracking_type === 'hold') {
-      const lastHold = prior[0]?.hold_secs;
-      return getSuggestedHold(lastHold, ex.hold_secs || 30);
-    }
-    if (ex.tracking_type === 'weight_reps') {
-      return getSuggestedWeight(ex.base_id, [prior], lastRPE.current, { reps_min: ex.reps_min, reps_max: ex.reps_max });
-    }
-    return {};
-  };
-
   // Live PR display only — mutates a separate map so the true baseline
   // (bestMap) stays clean for the authoritative recompute at finish.
-  const displayBest = useRef({});
   const isPR = (baseId, weight, reps) => {
     const cur = displayBest.current[baseId] ?? bestMap.current[baseId];
     const pr = isLocalPR(cur, weight, reps);
     if (pr) displayBest.current[baseId] = { weight_kg: weight ?? 0, reps: reps ?? 0 };
     return pr;
   };
-
-  // Initialise a not-yet-seen exercise's sets when we first land on it.
-  useEffect(() => {
-    if (!priorLoaded || !workout) return;
-    if (setsByIndex[index]) return;
-    const ex = overrides[index] || workout.exercises[index];
-    if (!ex) return;
-    const init = makeInitialSets(ex, suggestionFor(ex), priorSets.current[ex.base_id] || []);
-    setSetsByIndex((prev) => (prev[index] ? prev : { ...prev, [index]: init }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [index, priorLoaded]);
 
   const onSetsChange = (next) => setSetsByIndex((prev) => ({ ...prev, [index]: next }));
 
