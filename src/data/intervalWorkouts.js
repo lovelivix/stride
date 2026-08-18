@@ -193,6 +193,78 @@ export const INTERVAL_WORKOUTS = {
     ],
   },
 
+  // ── CIRCUITS (length-selectable strength + cardio) ──────────────────
+  circuit_full: {
+    id: 'circuit_full',
+    name: 'Full-Body Circuit',
+    category: 'Circuit',
+    emoji: '🔄',
+    difficulty: 'Intermediate',
+    not_for_glp1: true,
+    lengths: [15, 20, 30],
+    default_length: 20,
+    work_secs: 45,
+    rest_secs: 15,
+    desc: 'Strength moves and cardio back to back — keeps the heart rate up while you build. Grab the dumbbells or kettlebell.',
+    blocks: [
+      { name: 'Goblet Squats', cue: 'Kettlebell at the chest, deep and controlled.' },
+      { name: 'Push-Ups', cue: 'Full range, strong press.' },
+      { name: 'Kettlebell Swings', cue: 'Hinge and snap the hips, arms relaxed.' },
+      { name: 'Reverse Lunges', cue: 'Alternate legs, hold dumbbells.' },
+      { name: 'Mountain Climbers', cue: 'Fast knees, hips level — cardio hit.' },
+      { name: 'Bent-Over Rows', cue: 'Pull to the hip, squeeze the back.' },
+      { name: 'Burpees', cue: 'Chest down, jump up. Full-body blast.' },
+      { name: 'Plank Shoulder Taps', cue: 'Tap opposite shoulder, keep the hips still.' },
+    ],
+  },
+  circuit_kb: {
+    id: 'circuit_kb',
+    name: 'Kettlebell Circuit',
+    category: 'Circuit',
+    emoji: '🔔',
+    difficulty: 'Intermediate',
+    not_for_glp1: true,
+    lengths: [15, 20, 30],
+    default_length: 20,
+    work_secs: 40,
+    rest_secs: 20,
+    desc: 'One kettlebell, full body, minimal rest. Strength and conditioning in one.',
+    blocks: [
+      { name: 'KB Goblet Squat', cue: 'Bell at the chest, sit deep.' },
+      { name: 'KB Swings', cue: 'Power from the hips, not the arms.' },
+      { name: 'KB Single-Arm Row (Left)', cue: 'Brace on a knee, row to the hip.' },
+      { name: 'KB Single-Arm Row (Right)', cue: 'Switch hands.' },
+      { name: 'KB Push Press', cue: 'Dip the knees, drive the bell overhead.' },
+      { name: 'KB Deadlift', cue: 'Hinge, stand tall, squeeze the glutes.' },
+      { name: 'Fast Feet', cue: 'Quick light steps — bring the heart rate up.' },
+    ],
+  },
+
+  // ── PREHAB / CORRECTIVES ────────────────────────────────────────────
+  scap_strength: {
+    id: 'scap_strength',
+    name: 'Scapular Strength (Winged Scapula)',
+    category: 'Prehab',
+    emoji: '🩹',
+    difficulty: 'All levels',
+    duration: 10,
+    work_secs: 40,
+    rest_secs: 10,
+    rounds: 1,
+    desc: 'Wakes up and strengthens the shoulder-blade stabilisers (especially the serratus). Extra focus on the weaker LEFT side — do a couple more reps there. Light and controlled, never into pain.',
+    blocks: [
+      { name: 'Scapular Wall Slides', cue: 'Back to the wall, arms in a W. Slide to a Y keeping contact. Squeeze the blades down.' },
+      { name: 'Band Pull-Aparts', cue: 'Arms out front, pull the band apart, squeeze the shoulder blades, slow return.' },
+      { name: 'Serratus Punches', cue: 'On your back with a light weight/band, punch straight up and reach — spread the shoulder blade off the floor.' },
+      { name: 'Single-Arm Serratus (LEFT)', cue: 'Left arm only. Reach and protract hard — this is your priority side.' },
+      { name: 'Prone Y Raise', cue: 'Face down, thumbs up, lift the arms into a Y. Lower slow.' },
+      { name: 'Prone T Raise', cue: 'Arms out to a T, squeeze the mid-back, lift and lower.' },
+      { name: 'Scapular Push-Ups', cue: 'In a plank, arms straight — let the chest sink, then push the floor away to spread the blades. Small range.' },
+      { name: 'Wall Push-Up Plus (LEFT)', cue: 'Hands on wall — at the top, push the LEFT blade round the ribcage. A few extra reps on the left.' },
+      { name: 'Band Face Pulls', cue: 'Pull the band to your face, elbows high, rotate the hands back. Great for posture.' },
+    ],
+  },
+
   // ── BOOSTS (short optional finishers, fixed ~4 min) ─────────────────
   boost_low: {
     id: 'boost_low',
@@ -348,16 +420,18 @@ export const INTERVAL_WORKOUTS = {
 };
 
 // Category display order + labels for the Browse screen
-export const CATEGORY_ORDER = ['Warm-up', 'HIIT', 'Cardio', 'Combat', 'Core', 'Boost', 'Mobility'];
+export const CATEGORY_ORDER = ['Warm-up', 'Circuit', 'HIIT', 'Cardio', 'Combat', 'Core', 'Boost', 'Mobility', 'Prehab'];
 
 export const CATEGORY_META = {
   'Warm-up': { label: 'Warm-Ups', blurb: 'Prime the body before you train', emoji: '🌅' },
+  Circuit: { label: 'Circuits', blurb: 'Strength + cardio, back to back', emoji: '🔄' },
   HIIT: { label: 'HIIT', blurb: 'High-intensity intervals', emoji: '🔥' },
   Cardio: { label: 'Cardio', blurb: 'Low-impact heart-rate work', emoji: '🚶‍♀️' },
   Combat: { label: 'Combat', blurb: 'Kickboxing cardio', emoji: '🥊' },
   Core: { label: 'Core Finishers', blurb: 'Short, sharp core work', emoji: '🎯' },
   Boost: { label: 'Boosts', blurb: 'Quick optional finishers', emoji: '⚡' },
   Mobility: { label: 'Mobility & Stretch', blurb: 'Cool down and release', emoji: '🧘‍♀️' },
+  Prehab: { label: 'Prehab & Correctives', blurb: 'Targeted fixes and activation', emoji: '🩹' },
 };
 
 export function getIntervalWorkout(id) {

@@ -12,6 +12,36 @@ import IntervalPlayer from '../components/workout/IntervalPlayer.jsx';
 import { warmupForDay } from '../data/intervalWorkouts.js';
 import { T } from '../lib/theme.js';
 
+// Keep an in-progress workout alive across screen locks / app switches, which
+// on mobile can silently reload the page. We snapshot progress to localStorage
+// and restore it on mount. Snapshots older than 6 hours are treated as stale.
+const WORKOUT_TTL_MS = 6 * 60 * 60 * 1000;
+function readSaved(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (!data.startedAt || Date.now() - data.startedAt > WORKOUT_TTL_MS) return null;
+    return data;
+  } catch {
+    return null;
+  }
+}
+function writeSaved(key, data) {
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch {
+    /* ignore */
+  }
+}
+function clearSaved(key) {
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    /* ignore */
+  }
+}
+
 export default function ActiveWorkout() {
   const { day } = useParams();
   const { user, profile } = useAuth();
@@ -20,7 +50,10 @@ export default function ActiveWorkout() {
   const lowEnergy = params.get('low') === '1' && profile?.is_glp1;
 
   const programme = PROGRAMMES[profile?.programme_id];
-  const [location, setLocation] = useState(profile?.location_default || 'home');
+  const storageKey = `stride-active-${profile?.programme_id}-${day}`;
+  const saved = readSaved(storageKey);
+
+  const [location, setLocation] = useState(saved?.location || profile?.location_default || 'home');
 
   const workout = useMemo(() => {
     if (!programme) return null;
@@ -28,18 +61,18 @@ export default function ActiveWorkout() {
     return w && lowEnergy ? applyLowEnergy(w) : w;
   }, [programme, day, location, profile, lowEnergy]);
 
-  const [phase, setPhase] = useState('warmup'); // warmup | active | rpe | summary
+  const [phase, setPhase] = useState(saved?.phase || 'warmup'); // warmup | active | rpe | summary
   const [warmupPlaying, setWarmupPlaying] = useState(false);
-  const [index, setIndex] = useState(0);
-  const [overrides, setOverrides] = useState({}); // index -> resolved exercise (after swap)
-  const [setsByIndex, setSetsByIndex] = useState({}); // index -> sets[] (persists across nav)
+  const [index, setIndex] = useState(saved?.index || 0);
+  const [overrides, setOverrides] = useState(saved?.overrides || {}); // index -> resolved exercise (after swap)
+  const [setsByIndex, setSetsByIndex] = useState(saved?.setsByIndex || {}); // index -> sets[] (persists across nav)
   const [finalSets, setFinalSets] = useState([]); // flattened completed sets, computed at finish
   const [rpe, setRpe] = useState(6);
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const [lastSessionVolume, setLastSessionVolume] = useState(null);
 
-  const startTime = useRef(Date.now());
+  const startTime = useRef(saved?.startedAt || Date.now());
   const bestMap = useRef({}); // base_id -> best set {weight_kg, reps}
   const priorSets = useRef({}); // base_id -> array of last session's sets
   const lastRPE = useRef(null);
@@ -135,6 +168,12 @@ export default function ActiveWorkout() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index, priorLoaded]);
 
+  // Snapshot progress on every change so a background reload can resume here.
+  useEffect(() => {
+    if (phase === 'summary') return;
+    writeSaved(storageKey, { phase, index, setsByIndex, overrides, location, startedAt: startTime.current });
+  }, [phase, index, setsByIndex, overrides, location, storageKey]);
+
   if (!programme || !workout) {
     return (
       <div className="page-no-nav">
@@ -159,7 +198,7 @@ export default function ActiveWorkout() {
     return (
       <div className="page-no-nav">
         <div style={styles.topBar}>
-          <Link to="/today" style={styles.close}>✕</Link>
+          <Link to="/today" style={styles.close} onClick={() => clearSaved(storageKey)}>✕</Link>
           <div style={{ textAlign: 'center' }}>
             <div style={styles.dayName}>{workout.label}</div>
             <div style={styles.progress}>Ready when you are</div>
@@ -315,6 +354,7 @@ export default function ActiveWorkout() {
       }));
       if (rows.length) await supabase.from('session_sets').insert(rows);
     }
+    clearSaved(storageKey);
     setSaving(false);
     setPhase('summary');
     window.scrollTo({ top: 0 });
@@ -395,7 +435,7 @@ export default function ActiveWorkout() {
   return (
     <div className="page-no-nav" style={{ paddingBottom: 40 }}>
       <div style={styles.topBar}>
-        <Link to="/today" style={styles.close}>✕</Link>
+        <Link to="/today" style={styles.close} onClick={() => clearSaved(storageKey)}>✕</Link>
         <div style={{ textAlign: 'center' }}>
           <div style={styles.dayName}>{workout.label}</div>
           <div style={styles.progress}>{index + 1} of {total}{workout.low_energy ? ' · low energy' : ''}</div>

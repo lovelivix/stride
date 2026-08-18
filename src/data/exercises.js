@@ -174,6 +174,31 @@ export const EXERCISES = {
       gym_machine: 'seated_cable_row',
     },
   },
+  band_pull_apart: {
+    id: 'band_pull_apart',
+    name: 'Band Pull-Apart',
+    muscle_groups: ['upper_back', 'rear_delts', 'scapula'],
+    tracking_type: 'bodyweight_reps',
+    is_calf_focus: false,
+    cue: 'Arms out front holding a band. Pull it apart, squeeze the shoulder blades together, slow return.',
+    alternatives: {
+      home_bodyweight: 'band_pull_apart',
+      no_band: 'reverse_snow_angel',
+      gym: 'face_pull',
+    },
+  },
+  scapular_pushup: {
+    id: 'scapular_pushup',
+    name: 'Scapular Push-Up',
+    muscle_groups: ['serratus', 'scapula'],
+    tracking_type: 'bodyweight_reps',
+    is_calf_focus: false,
+    cue: 'In a plank, arms straight. Let the chest sink between the blades, then push the floor away to spread them. Small controlled range.',
+    alternatives: {
+      home_bodyweight: 'scapular_pushup',
+      easier: 'wall_scapular_pushup',
+    },
+  },
   lateral_raise: {
     id: 'lateral_raise',
     name: 'Lateral Raise',

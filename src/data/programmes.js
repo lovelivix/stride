@@ -245,6 +245,20 @@ export const PROGRAMMES = {
         warmup_mins: 5,
         exercises: [
           {
+            exercise_id: 'scapular_pushup',
+            sets: 2,
+            reps_min: 10,
+            reps_max: 15,
+            note: 'Winged-scapula activation. Spread the blades, then squeeze. Focus on driving the LEFT blade around the ribcage — a couple of extra reps on the left.',
+          },
+          {
+            exercise_id: 'band_pull_apart',
+            sets: 3,
+            reps_min: 12,
+            reps_max: 15,
+            note: 'Squeeze the shoulder blades together. Feel the LEFT side working — that\'s your priority.',
+          },
+          {
             exercise_id: 'pull_up',
             sets: 4,
             reps_min: 3,
