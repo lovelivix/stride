@@ -2,16 +2,16 @@
 // Warm-ups, HIIT/cardio, combat, mobility and core finishers.
 // Each workout expands into a sequence of timed segments by IntervalPlayer.
 //
-// Shape:
-//   { id, name, category, emoji, difficulty, duration, not_for_glp1, desc,
-//     work_secs, rest_secs, rounds, blocks: [{ name, cue, work_secs?, rest_secs? }] }
+// Two kinds:
+//  • Length-selectable (HIIT, Cardio, Combat, Core): have a `lengths` array
+//    (e.g. [15,20,30,40,60]). The player cycles the moves to fill the chosen
+//    time. work_secs/rest_secs set the interval.
+//  • Fixed sequences (Warm-ups, Mobility): a set list of moves played once.
 //
-// - rest_secs: 0 means moves flow straight on (used for warm-ups & mobility holds).
-// - rounds: the block list repeats this many times (HIIT/combat/core).
-// categories: 'Warm-up' | 'HIIT' | 'Cardio' | 'Combat' | 'Mobility' | 'Core'
+// categories: 'Warm-up' | 'HIIT' | 'Cardio' | 'Combat' | 'Core' | 'Mobility'
 
 export const INTERVAL_WORKOUTS = {
-  // ── WARM-UPS ────────────────────────────────────────────────────────
+  // ── WARM-UPS (fixed) ────────────────────────────────────────────────
   warmup_full: {
     id: 'warmup_full',
     name: 'Full-Body Warm-Up',
@@ -76,19 +76,19 @@ export const INTERVAL_WORKOUTS = {
     ],
   },
 
-  // ── HIIT (high impact — hidden from GLP-1 users) ────────────────────
-  hiit_20: {
-    id: 'hiit_20',
-    name: 'HIIT 20',
+  // ── HIIT (length-selectable, high impact → hidden from GLP-1) ───────
+  hiit: {
+    id: 'hiit',
+    name: 'HIIT',
     category: 'HIIT',
     emoji: '🔥',
     difficulty: 'Intermediate',
-    duration: 20,
     not_for_glp1: true,
+    lengths: [15, 20, 30, 40, 60],
+    default_length: 20,
     work_secs: 40,
     rest_secs: 20,
-    rounds: 3,
-    desc: 'Short and sharp. 40s work, 20s rest, 3 rounds.',
+    desc: 'High-intensity intervals. 40s work, 20s rest — pick your length.',
     blocks: [
       { name: 'Jumping Jacks', cue: 'Full range, steady rhythm. Get the heart up.' },
       { name: 'High Knees', cue: 'Drive the knees up fast, stay light on the feet.' },
@@ -96,41 +96,24 @@ export const INTERVAL_WORKOUTS = {
       { name: 'Mountain Climbers', cue: 'Plank position, drive knees to chest fast.' },
       { name: 'Burpees', cue: 'Down to the floor, jump the feet in, stand and hop.' },
       { name: 'Skaters', cue: 'Bound side to side, land soft on one leg.' },
+      { name: 'Plank Jacks', cue: 'In a plank, jump the feet wide and back.' },
+      { name: 'Tuck Jumps', cue: 'Jump and drive the knees up. Land soft.' },
     ],
   },
-  hiit_30: {
-    id: 'hiit_30',
-    name: 'HIIT 30',
-    category: 'HIIT',
-    emoji: '💥',
-    difficulty: 'Advanced',
-    duration: 30,
-    not_for_glp1: true,
-    work_secs: 40,
-    rest_secs: 20,
-    rounds: 5,
-    desc: 'The full burn. 40s work, 20s rest, 5 rounds.',
-    blocks: [
-      { name: 'Jumping Jacks', cue: 'Steady rhythm, full range.' },
-      { name: 'High Knees', cue: 'Fast feet, knees up, drive the arms.' },
-      { name: 'Squat Jumps', cue: 'Explode up, land soft and controlled.' },
-      { name: 'Mountain Climbers', cue: 'Hips level, knees driving fast.' },
-      { name: 'Burpees', cue: 'Full rep — chest down, jump up.' },
-      { name: 'Skaters', cue: 'Wide bounds, soft landings.' },
-    ],
-  },
-  cardio_low_impact_20: {
-    id: 'cardio_low_impact_20',
-    name: 'Low-Impact Cardio 20',
+
+  // ── CARDIO (length-selectable, low impact — GLP-1 friendly) ─────────
+  cardio_low_impact: {
+    id: 'cardio_low_impact',
+    name: 'Low-Impact Cardio',
     category: 'Cardio',
     emoji: '🚶‍♀️',
     difficulty: 'Beginner',
-    duration: 20,
     not_for_glp1: false,
+    lengths: [15, 20, 30, 40, 60],
+    default_length: 20,
     work_secs: 40,
     rest_secs: 20,
-    rounds: 3,
-    desc: 'Get the heart rate up with no jumping. Joint-friendly.',
+    desc: 'Raise the heart rate with no jumping. Kind to the joints.',
     blocks: [
       { name: 'Fast March', cue: 'Big arm swings, quick feet. One foot always down.' },
       { name: 'Step Jacks', cue: 'Step out side to side with the arms — no jump.' },
@@ -138,20 +121,22 @@ export const INTERVAL_WORKOUTS = {
       { name: 'Squat to Stand', cue: 'Sit back to a squat, stand tall, repeat.' },
       { name: 'Low Fast Feet', cue: 'Quick small steps on the spot, stay low.' },
       { name: 'Side Steps', cue: 'Step wide side to side, reach with the arms.' },
+      { name: 'Standing Oblique Crunch', cue: 'Knee up to the elbow, alternate sides.' },
+      { name: 'Toe Taps', cue: 'Light taps forward, quick feet, arms pumping.' },
     ],
   },
 
-  // ── COMBAT ──────────────────────────────────────────────────────────
-  combat_20: {
-    id: 'combat_20',
-    name: 'Strike & Burn',
+  // ── COMBAT (length-selectable) ──────────────────────────────────────
+  combat: {
+    id: 'combat',
+    name: 'Combat Cardio',
     category: 'Combat',
     emoji: '🥊',
     difficulty: 'Beginner',
-    duration: 20,
+    lengths: [15, 20, 30, 40, 60],
+    default_length: 20,
     work_secs: 40,
     rest_secs: 20,
-    rounds: 3,
     desc: 'Kickboxing cardio. Light on the feet, sharp on the strikes.',
     blocks: [
       { name: 'Jab – Cross', cue: 'Guard up. Snap the punches, rotate the hips.' },
@@ -160,30 +145,95 @@ export const INTERVAL_WORKOUTS = {
       { name: 'Roundhouse Kicks', cue: 'Pivot the standing foot, kick across. Alternate.' },
       { name: 'Bob & Weave', cue: 'Bend the knees, roll under an imaginary punch.' },
       { name: 'Uppercuts', cue: 'Drive up from the legs, alternate hands.' },
-    ],
-  },
-  combat_30: {
-    id: 'combat_30',
-    name: 'Fighter Flow',
-    category: 'Combat',
-    emoji: '🥋',
-    difficulty: 'Intermediate',
-    duration: 30,
-    work_secs: 40,
-    rest_secs: 20,
-    rounds: 5,
-    desc: 'Longer combinations, rising intensity throughout.',
-    blocks: [
-      { name: 'Jab – Cross – Hook', cue: 'Flow the combo, reset your guard each time.' },
-      { name: 'Front Kicks', cue: 'Sharp knee drive, snap the kick out.' },
-      { name: 'Duck & Counter', cue: 'Slip down, come back with two punches.' },
-      { name: 'Roundhouse Kicks', cue: 'Pivot and turn over the hip. Alternate.' },
       { name: 'Knee Strikes', cue: 'Pull down, drive the knee up. Alternate.' },
       { name: 'Fast Punches', cue: 'Rapid straight punches — empty the tank.' },
     ],
   },
 
-  // ── MOBILITY / COOL-DOWN (holds — same ids the app already links to) ─
+  // ── CORE FINISHERS (length-selectable, shorter) ─────────────────────
+  core: {
+    id: 'core',
+    name: 'Core Finisher',
+    category: 'Core',
+    emoji: '🎯',
+    difficulty: 'Intermediate',
+    lengths: [10, 15, 20],
+    default_length: 10,
+    work_secs: 40,
+    rest_secs: 15,
+    desc: 'Quick, sharp core burner to tack onto any session.',
+    blocks: [
+      { name: 'Plank Hold', cue: 'Body in one line, hips level, breathe.' },
+      { name: 'Mountain Climbers', cue: 'Drive the knees, keep the hips down.' },
+      { name: 'Dead Bug', cue: 'Low back flat, extend opposite arm and leg slowly.' },
+      { name: 'Bicycle Crunches', cue: 'Elbow to opposite knee, slow and controlled.' },
+      { name: 'Hollow Hold', cue: 'Low back pressed down, arms and legs off the floor.' },
+      { name: 'Leg Raises', cue: 'Lower the legs slow, keep the back flat.' },
+    ],
+  },
+  core_gentle: {
+    id: 'core_gentle',
+    name: 'Gentle Core',
+    category: 'Core',
+    emoji: '🌾',
+    difficulty: 'Beginner',
+    not_for_glp1: false,
+    lengths: [10, 15, 20],
+    default_length: 10,
+    work_secs: 40,
+    rest_secs: 20,
+    desc: 'Low-strain core work — no crunching, kind to the back.',
+    blocks: [
+      { name: 'Dead Bug', cue: 'Slow opposite arm and leg, low back stays flat.' },
+      { name: 'Bird Dog', cue: 'On all fours, extend opposite arm and leg, hold steady.' },
+      { name: 'Modified Plank', cue: 'On the knees if needed. One long line.' },
+      { name: 'Glute Bridge Hold', cue: 'Hips up, squeeze, brace the core.' },
+      { name: 'Side Plank (Left)', cue: 'On the forearm, hips up. Knee down to modify.' },
+      { name: 'Side Plank (Right)', cue: 'Switch sides.' },
+    ],
+  },
+
+  // ── BOOSTS (short optional finishers, fixed ~4 min) ─────────────────
+  boost_low: {
+    id: 'boost_low',
+    name: '4-Minute Low-Impact Boost',
+    category: 'Boost',
+    emoji: '⚡',
+    difficulty: 'Beginner',
+    duration: 4,
+    not_for_glp1: false,
+    work_secs: 40,
+    rest_secs: 20,
+    rounds: 1,
+    desc: 'A quick heart-rate spike with no jumping — a perfect finisher.',
+    blocks: [
+      { name: 'Fast March', cue: 'Big arms, quick feet. Lift the pace.' },
+      { name: 'Step Jacks', cue: 'Step wide side to side with the arms.' },
+      { name: 'Standing Knee Drives', cue: 'Drive the knees up, alternate fast.' },
+      { name: 'Squat to Stand', cue: 'Sit back, stand tall, repeat with pace.' },
+    ],
+  },
+  boost_hiit: {
+    id: 'boost_hiit',
+    name: '4-Minute HIIT Boost',
+    category: 'Boost',
+    emoji: '🔥',
+    difficulty: 'Intermediate',
+    duration: 4,
+    not_for_glp1: true,
+    work_secs: 40,
+    rest_secs: 20,
+    rounds: 1,
+    desc: 'A short sharp burst to finish strong. Empty the tank.',
+    blocks: [
+      { name: 'Jumping Jacks', cue: 'Full range, fast rhythm.' },
+      { name: 'High Knees', cue: 'Drive the knees, light on the feet.' },
+      { name: 'Squat Jumps', cue: 'Explode up, land soft.' },
+      { name: 'Burpees', cue: 'Chest down, jump up. Go.' },
+    ],
+  },
+
+  // ── MOBILITY / COOL-DOWN (fixed — ids the app already links to) ─────
   mob_full: {
     id: 'mob_full',
     name: 'Full Body Wind-Down',
@@ -271,53 +321,10 @@ export const INTERVAL_WORKOUTS = {
       { name: 'Supine Twist (Right)', cue: 'Roll gently the other way.' },
     ],
   },
-
-  // ── CORE FINISHERS ──────────────────────────────────────────────────
-  core_5: {
-    id: 'core_5',
-    name: 'Core Finisher',
-    category: 'Core',
-    emoji: '🎯',
-    difficulty: 'Intermediate',
-    duration: 6,
-    work_secs: 40,
-    rest_secs: 15,
-    rounds: 1,
-    desc: 'Quick, sharp core burner to tack onto any session.',
-    blocks: [
-      { name: 'Plank Hold', cue: 'Body in one line, hips level, breathe.' },
-      { name: 'Mountain Climbers', cue: 'Drive the knees, keep the hips down.' },
-      { name: 'Dead Bug', cue: 'Low back flat, extend opposite arm and leg slowly.' },
-      { name: 'Bicycle Crunches', cue: 'Elbow to opposite knee, slow and controlled.' },
-      { name: 'Hollow Hold', cue: 'Low back pressed down, arms and legs off the floor.' },
-      { name: 'Leg Raises', cue: 'Lower the legs slow, keep the back flat.' },
-    ],
-  },
-  core_gentle: {
-    id: 'core_gentle',
-    name: 'Gentle Core',
-    category: 'Core',
-    emoji: '🌾',
-    difficulty: 'Beginner',
-    duration: 6,
-    not_for_glp1: false,
-    work_secs: 40,
-    rest_secs: 20,
-    rounds: 1,
-    desc: 'Low-strain core work — no crunching, kind to the back.',
-    blocks: [
-      { name: 'Dead Bug', cue: 'Slow opposite arm and leg, low back stays flat.' },
-      { name: 'Bird Dog', cue: 'On all fours, extend opposite arm and leg, hold steady.' },
-      { name: 'Modified Plank', cue: 'On the knees if needed. One long line.' },
-      { name: 'Glute Bridge Hold', cue: 'Hips up, squeeze, brace the core.' },
-      { name: 'Side Plank (Left)', cue: 'On the forearm, hips up. Knee down to modify.' },
-      { name: 'Side Plank (Right)', cue: 'Switch sides.' },
-    ],
-  },
 };
 
 // Category display order + labels for the Browse screen
-export const CATEGORY_ORDER = ['Warm-up', 'HIIT', 'Cardio', 'Combat', 'Core', 'Mobility'];
+export const CATEGORY_ORDER = ['Warm-up', 'HIIT', 'Cardio', 'Combat', 'Core', 'Boost', 'Mobility'];
 
 export const CATEGORY_META = {
   'Warm-up': { label: 'Warm-Ups', blurb: 'Prime the body before you train', emoji: '🌅' },
@@ -325,11 +332,26 @@ export const CATEGORY_META = {
   Cardio: { label: 'Cardio', blurb: 'Low-impact heart-rate work', emoji: '🚶‍♀️' },
   Combat: { label: 'Combat', blurb: 'Kickboxing cardio', emoji: '🥊' },
   Core: { label: 'Core Finishers', blurb: 'Short, sharp core work', emoji: '🎯' },
+  Boost: { label: 'Boosts', blurb: 'Quick optional finishers', emoji: '⚡' },
   Mobility: { label: 'Mobility & Stretch', blurb: 'Cool down and release', emoji: '🧘‍♀️' },
 };
 
 export function getIntervalWorkout(id) {
   return INTERVAL_WORKOUTS[id] || null;
+}
+
+// Does this workout let you pick a length?
+export function hasLengths(workout) {
+  return Array.isArray(workout?.lengths) && workout.lengths.length > 0;
+}
+
+// A short duration label for cards: "15–60 min" or "10 min".
+export function durationLabel(workout) {
+  if (hasLengths(workout)) {
+    const ls = workout.lengths;
+    return `${ls[0]}–${ls[ls.length - 1]} min`;
+  }
+  return `${workout.duration} min`;
 }
 
 // All workouts, optionally filtered for GLP-1 users (hides high-impact).
@@ -355,30 +377,63 @@ export function warmupForDay(dayLabel = '') {
   return INTERVAL_WORKOUTS.warmup_full;
 }
 
-// Flatten a workout into an ordered list of timed segments for the player.
-export function buildSegments(workout) {
+/**
+ * Flatten a workout into an ordered list of timed segments.
+ * @param workout
+ * @param targetMins  chosen length (only used for length-selectable workouts)
+ */
+export function buildSegments(workout, targetMins) {
   if (!workout) return [];
-  const segs = [{ phase: 'prepare', name: 'Get Ready', cue: workout.name, secs: 10 }];
-  const rounds = workout.rounds || 1;
   const blocks = workout.blocks || [];
+  const workOf = (b) => b.work_secs ?? workout.work_secs ?? 40;
+  const restOf = (b) => b.rest_secs ?? workout.rest_secs ?? 0;
+  const segs = [{ phase: 'prepare', name: 'Get Ready', cue: workout.name, secs: 10 }];
 
-  for (let r = 1; r <= rounds; r++) {
-    blocks.forEach((b, i) => {
-      const work = b.work_secs ?? workout.work_secs ?? 40;
-      segs.push({ phase: 'work', name: b.name, cue: b.cue, secs: work, round: r, rounds });
-      const isLast = r === rounds && i === blocks.length - 1;
-      const rest = b.rest_secs ?? workout.rest_secs ?? 0;
-      if (rest > 0 && !isLast) {
-        segs.push({ phase: 'rest', name: 'Rest', cue: '', secs: rest, round: r, rounds });
+  if (hasLengths(workout)) {
+    // Cycle the moves to fill the chosen time.
+    const target = (targetMins || workout.default_length || workout.lengths[0]) * 60;
+    let total = 10;
+    let i = 0;
+    const MAX = 800; // safety cap
+    while (total < target && segs.length < MAX) {
+      const b = blocks[i % blocks.length];
+      const round = Math.floor(i / blocks.length) + 1;
+      segs.push({ phase: 'work', name: b.name, cue: b.cue, secs: workOf(b), round });
+      total += workOf(b);
+      i += 1;
+      if (total >= target) break;
+      const rest = restOf(b);
+      if (rest > 0) {
+        segs.push({ phase: 'rest', name: 'Rest', cue: '', secs: rest });
+        total += rest;
       }
-    });
+    }
+  } else {
+    // Fixed sequence, single (or fixed rounds) pass.
+    const rounds = workout.rounds || 1;
+    for (let r = 1; r <= rounds; r++) {
+      blocks.forEach((b, idx) => {
+        segs.push({ phase: 'work', name: b.name, cue: b.cue, secs: workOf(b), round: r, rounds });
+        const isLast = r === rounds && idx === blocks.length - 1;
+        if (restOf(b) > 0 && !isLast) segs.push({ phase: 'rest', name: 'Rest', cue: '', secs: restOf(b) });
+      });
+    }
   }
 
-  // Fill in "Next: …" cues on rest segments
-  for (let i = 0; i < segs.length; i++) {
-    if (segs[i].phase === 'rest') {
-      const next = segs.slice(i + 1).find((s) => s.phase === 'work');
-      segs[i].cue = next ? `Next up: ${next.name}` : 'Almost there';
+  // Drop any trailing rest so we end on a work move.
+  while (segs.length && segs[segs.length - 1].phase === 'rest') segs.pop();
+
+  // Stamp total round count onto work segments (for "Round r / n" display).
+  const maxRound = segs.reduce((m, s) => (s.phase === 'work' ? Math.max(m, s.round || 1) : m), 1);
+  segs.forEach((s) => {
+    if (s.phase === 'work') s.rounds = maxRound;
+  });
+
+  // Fill in "Next up: …" cues on rest segments.
+  for (let k = 0; k < segs.length; k++) {
+    if (segs[k].phase === 'rest') {
+      const next = segs.slice(k + 1).find((s) => s.phase === 'work');
+      segs[k].cue = next ? `Next up: ${next.name}` : 'Almost there';
     }
   }
   return segs;

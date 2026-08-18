@@ -32,7 +32,8 @@ export default function ActiveWorkout() {
   const [warmupPlaying, setWarmupPlaying] = useState(false);
   const [index, setIndex] = useState(0);
   const [overrides, setOverrides] = useState({}); // index -> resolved exercise (after swap)
-  const [loggedSets, setLoggedSets] = useState([]);
+  const [setsByIndex, setSetsByIndex] = useState({}); // index -> sets[] (persists across nav)
+  const [finalSets, setFinalSets] = useState([]); // flattened completed sets, computed at finish
   const [rpe, setRpe] = useState(6);
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
@@ -164,13 +165,28 @@ export default function ActiveWorkout() {
     return {};
   };
 
+  // Live PR display only — mutates a separate map so the true baseline
+  // (bestMap) stays clean for the authoritative recompute at finish.
+  const displayBest = useRef({});
   const isPR = (baseId, weight, reps) => {
-    const pr = isLocalPR(bestMap.current[baseId], weight, reps);
-    if (pr) bestMap.current[baseId] = { weight_kg: weight ?? 0, reps: reps ?? 0 };
+    const cur = displayBest.current[baseId] ?? bestMap.current[baseId];
+    const pr = isLocalPR(cur, weight, reps);
+    if (pr) displayBest.current[baseId] = { weight_kg: weight ?? 0, reps: reps ?? 0 };
     return pr;
   };
 
-  const handleLogSet = (set) => setLoggedSets((prev) => [...prev, set]);
+  // Initialise a not-yet-seen exercise's sets when we first land on it.
+  useEffect(() => {
+    if (!priorLoaded || !workout) return;
+    if (setsByIndex[index]) return;
+    const ex = overrides[index] || workout.exercises[index];
+    if (!ex) return;
+    const init = makeInitialSets(ex, suggestionFor(ex), priorSets.current[ex.base_id] || []);
+    setSetsByIndex((prev) => (prev[index] ? prev : { ...prev, [index]: init }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [index, priorLoaded]);
+
+  const onSetsChange = (next) => setSetsByIndex((prev) => ({ ...prev, [index]: next }));
 
   const handleSwap = () => {
     const nextEx = nextAlternative(current.base_id, current.id ? current.id : current.variant_id);
@@ -197,9 +213,65 @@ export default function ActiveWorkout() {
     }
   };
 
+  const back = () => {
+    if (index > 0) {
+      setIndex((i) => i - 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const jumpTo = (i) => {
+    setIndex(i);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Flatten all completed sets across every exercise, recomputing PRs
+  // authoritatively against the true baseline (so edits/back-nav are correct).
+  const collectLoggedSets = () => {
+    const baseline = {};
+    Object.keys(bestMap.current).forEach((b) => {
+      const r = bestMap.current[b];
+      baseline[b] = r ? { weight_kg: r.weight_kg ?? 0, reps: r.reps ?? 0 } : null;
+    });
+    const logged = [];
+    workout.exercises.forEach((exBase, i) => {
+      const ex = overrides[i] || exBase;
+      const arr = setsByIndex[i] || [];
+      arr.forEach((s, si) => {
+        if (!s.completed) return;
+        const isBW = ex.tracking_type === 'bodyweight_reps';
+        const isHold = ex.tracking_type === 'hold';
+        const isCardio = ex.tracking_type === 'cardio';
+        const weight = isBW || isHold || isCardio ? null : s.weight === '' || s.weight == null ? null : parseFloat(s.weight);
+        const reps = isHold || isCardio ? null : s.reps === '' || s.reps == null ? null : parseInt(s.reps, 10);
+        const hold = isHold ? (s.hold === '' || s.hold == null ? null : parseInt(s.hold, 10)) : null;
+        let pr = false;
+        if (!isCardio) {
+          pr = isLocalPR(baseline[ex.base_id], weight, reps);
+          if (pr) baseline[ex.base_id] = { weight_kg: weight ?? 0, reps: reps ?? 0 };
+        }
+        logged.push({
+          base_id: ex.base_id,
+          variant_id: ex.variant_id || ex.id || ex.base_id,
+          exercise_name: ex.name,
+          set_number: si + 1,
+          weight_kg: weight,
+          reps,
+          hold_secs: hold,
+          completed: true,
+          is_pr: pr,
+          block: ex.block,
+        });
+      });
+    });
+    return logged;
+  };
+
   const finish = async () => {
     setSaving(true);
-    const volume = loggedSets.reduce((n, s) => n + (s.weight_kg && s.reps ? s.weight_kg * s.reps : 0), 0);
+    const logged = collectLoggedSets();
+    setFinalSets(logged);
+    const volume = logged.reduce((n, s) => n + (s.weight_kg && s.reps ? s.weight_kg * s.reps : 0), 0);
     const durationMins = Math.max(1, Math.round((Date.now() - startTime.current) / 60000));
     const workoutId = `${programme.id}_${day}`;
 
@@ -219,7 +291,7 @@ export default function ActiveWorkout() {
       .single();
 
     if (!error && session) {
-      const rows = loggedSets.map((s) => ({
+      const rows = logged.map((s) => ({
         session_id: session.id,
         user_id: user.id,
         exercise_id: s.base_id, // stable base id → coherent history/PRs
@@ -230,7 +302,7 @@ export default function ActiveWorkout() {
         hold_secs: s.hold_secs,
         completed: s.completed,
         is_pr: s.is_pr,
-        alternative_used: s.exercise_id !== s.base_id ? s.exercise_id : null,
+        alternative_used: s.variant_id !== s.base_id ? s.variant_id : null,
       }));
       if (rows.length) await supabase.from('session_sets').insert(rows);
     }
@@ -245,7 +317,7 @@ export default function ActiveWorkout() {
     return (
       <div className="page-no-nav">
         <WorkoutSummary
-          loggedSets={loggedSets}
+          loggedSets={finalSets}
           plannedSets={workout.total_planned_sets}
           lastSessionVolume={lastSessionVolume}
           isCalfDay={workout.has_calf_finisher}
@@ -254,6 +326,18 @@ export default function ActiveWorkout() {
           onAddNote={() => navigate('/progress?log=1')}
           onDone={() => navigate('/today')}
         />
+        {workout.cardio_boost && (
+          <div className="card" style={{ marginTop: 14, textAlign: 'center' }}>
+            <div style={{ fontSize: 26 }}>{profile?.is_glp1 ? '⚡' : '🔥'}</div>
+            <div style={{ fontWeight: 700, marginTop: 4 }}>Optional 4-minute cardio boost?</div>
+            <div className="muted" style={{ fontSize: 13, margin: '4px 0 12px' }}>
+              A short finisher to spike the heart rate. Totally optional.
+            </div>
+            <button className="btn btn-ghost" onClick={() => navigate(`/session/${profile?.is_glp1 ? 'boost_low' : 'boost_hiit'}`)}>
+              Add a boost →
+            </button>
+          </div>
+        )}
         {workout.mobility_addon && (
           <div className="card" style={{ marginTop: 14, textAlign: 'center' }}>
             <div style={{ fontSize: 26 }}>🧘‍♀️</div>
@@ -320,7 +404,7 @@ export default function ActiveWorkout() {
         <div style={{ ...styles.barFill, width: `${((index) / total) * 100}%` }} />
       </div>
 
-      {!priorLoaded ? (
+      {!priorLoaded || !setsByIndex[index] ? (
         <div className="spinner" />
       ) : (
         <SetLogger
@@ -329,20 +413,56 @@ export default function ActiveWorkout() {
           lastSets={priorSets.current[current.base_id] || []}
           suggestion={suggestionFor(current)}
           isPR={isPR}
-          onLogSet={handleLogSet}
+          sets={setsByIndex[index]}
+          onSetsChange={onSetsChange}
           onSwap={handleSwap}
           onSkip={advance}
           onDone={advance}
+          onBack={back}
+          canGoBack={index > 0}
         />
       )}
 
       <div style={styles.jump}>
-        {workout.exercises.map((e, i) => (
-          <span key={i} style={{ ...styles.jumpDot, ...(i === index ? styles.jumpNow : i < index ? styles.jumpDone : {}), ...(e.block === 'calf' ? { outline: `2px solid ${T.lime}` } : {}) }} />
-        ))}
+        {workout.exercises.map((e, i) => {
+          const arr = setsByIndex[i] || [];
+          const done = arr.length > 0 && arr.every((s) => s.completed);
+          const started = arr.some((s) => s.completed);
+          return (
+            <button
+              key={i}
+              onClick={() => jumpTo(i)}
+              aria-label={`Go to exercise ${i + 1}`}
+              style={{
+                ...styles.jumpDot,
+                ...(i === index ? styles.jumpNow : done ? styles.jumpDone : started ? styles.jumpStarted : {}),
+                ...(e.block === 'calf' ? { outline: `2px solid ${T.lime}`, outlineOffset: 1 } : {}),
+              }}
+            />
+          );
+        })}
       </div>
+      <div style={styles.jumpHint}>Tap a dot to jump back and edit any exercise</div>
     </div>
   );
+}
+
+function makeInitialSets(ex, suggestion, lastSets) {
+  const targetReps = ex.reps_max || ex.reps_min;
+  const suggested = suggestion?.weight ?? null;
+  const n = ex.sets || 1;
+  return Array.from({ length: n }).map((_, i) => ({
+    weight:
+      suggested != null
+        ? String(suggested)
+        : lastSets[i]?.weight_kg != null
+        ? String(lastSets[i].weight_kg)
+        : '',
+    reps: targetReps ? String(targetReps) : '',
+    hold: ex.hold_secs ? String(ex.hold_secs) : '',
+    completed: false,
+    is_pr: false,
+  }));
 }
 
 function rpeLabel(v) {
@@ -363,10 +483,12 @@ const styles = {
   locOn: { background: '#fff', boxShadow: 'var(--shadow-sm)' },
   bar: { height: 6, background: 'var(--border)', borderRadius: 999, overflow: 'hidden', marginBottom: 18 },
   barFill: { height: '100%', background: T.pink, borderRadius: 999, transition: 'width .3s' },
-  jump: { display: 'flex', gap: 6, justifyContent: 'center', marginTop: 18, flexWrap: 'wrap' },
-  jumpDot: { width: 9, height: 9, borderRadius: 999, background: 'var(--border)' },
-  jumpNow: { background: T.pink, transform: 'scale(1.3)' },
-  jumpDone: { background: '#bfe9cd' },
+  jump: { display: 'flex', gap: 8, justifyContent: 'center', marginTop: 18, flexWrap: 'wrap' },
+  jumpDot: { width: 14, height: 14, borderRadius: 999, background: 'var(--border)', padding: 0 },
+  jumpNow: { background: T.pink, transform: 'scale(1.25)' },
+  jumpDone: { background: '#6fd08a' },
+  jumpStarted: { background: T.amber },
+  jumpHint: { fontSize: 11, color: 'var(--muted)', textAlign: 'center', marginTop: 8 },
   lbl: { display: 'block', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, color: 'var(--muted)', marginBottom: 6 },
   glp1Warn: { background: '#f3ecff', color: '#6a3fb0', borderRadius: 12, padding: '10px 12px', fontSize: 13, marginTop: 14, lineHeight: 1.45 },
 };

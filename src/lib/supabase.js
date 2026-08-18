@@ -18,5 +18,15 @@ if (!supabaseConfigured) {
 
 export const supabase = createClient(
   supabaseConfigured ? url : 'https://placeholder.supabase.co',
-  supabaseConfigured ? anonKey : 'placeholder-anon-key'
+  supabaseConfigured ? anonKey : 'placeholder-anon-key',
+  {
+    auth: {
+      // Keep people signed in across sessions/refreshes and handle the
+      // magic-link callback in the URL automatically.
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      storageKey: 'stride-auth',
+    },
+  }
 );

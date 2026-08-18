@@ -28,6 +28,7 @@ export const PROGRAMMES = {
           { exercise_id: 'eccentric_calf_lower', sets: 3, reps_min: 10, reps_max: 12 },
           { exercise_id: 'single_leg_calf_raise', sets: 2, reps_min: 8, reps_max: 12, per_side: true },
         ],
+        cardio_boost: true,
         mobility_addon: true,
       },
       B: {
@@ -42,9 +43,12 @@ export const PROGRAMMES = {
           { exercise_id: 'push_up', sets: 3, reps_min: 8, reps_max: 15 },
           { exercise_id: 'single_arm_row', sets: 3, reps_min: 10, reps_max: 12, per_side: true },
           { exercise_id: 'lateral_raise', sets: 3, reps_min: 12, reps_max: 15 },
-          { exercise_id: 'bicep_curl', sets: 2, reps_min: 10, reps_max: 12 },
-          { exercise_id: 'tricep_dip', sets: 2, reps_min: 10, reps_max: 12 },
+          { exercise_id: 'bicep_curl', sets: 2, reps_min: 10, reps_max: 12, superset: 'Superset · arms',
+            note: 'Superset: do this back-to-back with tricep dips, minimal rest.' },
+          { exercise_id: 'tricep_dip', sets: 2, reps_min: 10, reps_max: 12, superset: 'Superset · arms',
+            note: 'Straight into these from the curls — then rest.' },
         ],
+        cardio_boost: true,
         mobility_addon: true,
       },
       C: {

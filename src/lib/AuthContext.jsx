@@ -7,14 +7,32 @@ export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [profileChecked, setProfileChecked] = useState(false); // has a profile fetch completed?
+  const [profileError, setProfileError] = useState(false); // did the fetch fail (network/RLS)?
 
   const loadProfile = useCallback(async (userId) => {
     if (!userId) {
       setProfile(null);
+      setProfileError(false);
+      setProfileChecked(true);
       return;
     }
-    const { data } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
-    setProfile(data || null);
+    // Retry once — a transient error must NOT be mistaken for "no account",
+    // which would wrongly push an existing user back into onboarding.
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
+      if (!error) {
+        setProfile(data || null);
+        setProfileError(false);
+        setProfileChecked(true);
+        return;
+      }
+      if (attempt === 0) await new Promise((r) => setTimeout(r, 700));
+    }
+    // Both attempts failed — keep whatever we had and flag the error so the UI
+    // can offer a retry instead of silently sending them to onboarding.
+    setProfileError(true);
+    setProfileChecked(true);
   }, []);
 
   useEffect(() => {
@@ -29,6 +47,7 @@ export function AuthProvider({ children }) {
 
     const { data: sub } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
       setSession(newSession);
+      setProfileChecked(false);
       await loadProfile(newSession?.user?.id);
     });
 
@@ -43,6 +62,7 @@ export function AuthProvider({ children }) {
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
     setProfile(null);
+    setProfileChecked(true);
   }, []);
 
   const value = {
@@ -50,6 +70,8 @@ export function AuthProvider({ children }) {
     user: session?.user || null,
     profile,
     loading,
+    profileChecked,
+    profileError,
     refreshProfile,
     setProfile,
     signOut,

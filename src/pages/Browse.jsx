@@ -1,12 +1,14 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/AuthContext.jsx';
-import { groupedIntervalWorkouts } from '../data/intervalWorkouts.js';
+import { groupedIntervalWorkouts, durationLabel } from '../data/intervalWorkouts.js';
+import { listAmraps, amrapDurationLabel } from '../data/amrapWorkouts.js';
 import { T } from '../lib/theme.js';
 
 export default function Browse() {
   const { profile } = useAuth();
   const navigate = useNavigate();
   const groups = groupedIntervalWorkouts(profile?.is_glp1);
+  const amraps = listAmraps(profile?.is_glp1);
 
   return (
     <div className="page">
@@ -32,7 +34,7 @@ export default function Browse() {
                 <div style={styles.emoji}>{w.emoji}</div>
                 <div style={styles.name}>{w.name}</div>
                 <div style={styles.meta}>
-                  <span>⏱ {w.duration}m</span>
+                  <span>⏱ {durationLabel(w)}</span>
                   <span style={styles.dot}>·</span>
                   <span>{w.difficulty}</span>
                 </div>
@@ -42,6 +44,32 @@ export default function Browse() {
           </div>
         </div>
       ))}
+
+      {amraps.length > 0 && (
+        <div style={{ marginTop: 24 }}>
+          <div style={styles.groupHead}>
+            <span style={{ fontSize: 20 }}>⏳</span>
+            <div>
+              <h2 style={styles.h2}>AMRAP</h2>
+              <div className="muted" style={{ fontSize: 12.5 }}>As many rounds as possible — pick your time cap</div>
+            </div>
+          </div>
+          <div style={styles.grid}>
+            {amraps.map((w) => (
+              <button key={w.id} className="card" style={styles.card} onClick={() => navigate(`/amrap/${w.id}`)}>
+                <div style={styles.emoji}>{w.emoji}</div>
+                <div style={styles.name}>{w.name}</div>
+                <div style={styles.meta}>
+                  <span>⏱ {amrapDurationLabel(w)}</span>
+                  <span style={styles.dot}>·</span>
+                  <span>{w.difficulty}</span>
+                </div>
+                <div style={styles.desc}>{w.desc}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {profile?.is_glp1 && (
         <p className="muted" style={{ fontSize: 12, marginTop: 24, lineHeight: 1.5, fontStyle: 'italic' }}>

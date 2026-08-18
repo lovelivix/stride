@@ -39,10 +39,22 @@ function getCtx() {
   return ctx;
 }
 
-// Call once from a user gesture to unlock audio on iOS/Safari.
+// Call once from a user gesture (a tap) to unlock audio on iOS/Safari.
+// iOS keeps the AudioContext suspended until a sound is actually played
+// inside a user gesture, so we resume AND play a 1-sample silent buffer.
 export function unlockAudio() {
   const c = getCtx();
-  if (c && c.state === 'suspended') c.resume();
+  if (!c) return;
+  if (c.state === 'suspended') c.resume();
+  try {
+    const buffer = c.createBuffer(1, 1, 22050);
+    const src = c.createBufferSource();
+    src.buffer = buffer;
+    src.connect(c.destination);
+    src.start(0);
+  } catch {
+    /* ignore */
+  }
 }
 
 function tone(freq, ms, { type = 'sine', vol = 0.18 } = {}) {

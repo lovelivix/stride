@@ -29,6 +29,7 @@ export function buildWorkout(programme, dayKey, location, profile) {
       duration_mins: item.duration_mins,
       per_side: !!item.per_side,
       note: item.note,
+      superset: item.superset || null,
     };
   };
 
@@ -41,6 +42,7 @@ export function buildWorkout(programme, dayKey, location, profile) {
     warmup_mins: day.warmup_mins || 5,
     has_calf_finisher: !!day.has_calf_finisher,
     mobility_addon: !!day.mobility_addon,
+    cardio_boost: day.cardio_boost != null ? !!day.cardio_boost : day.category === 'Strength',
     post_session_note: day.post_session_note || null,
     low_energy_day_option: !!day.low_energy_day_option,
     exercises: [...main, ...calf],

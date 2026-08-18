@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { buildSegments } from '../../data/intervalWorkouts.js';
+import { buildSegments, hasLengths } from '../../data/intervalWorkouts.js';
 import { countBeep, goBeep, restBeep, doneBeep, unlockAudio, isMuted, toggleMuted } from '../../lib/beep.js';
 import { T } from '../../lib/theme.js';
 
@@ -14,8 +14,13 @@ const PHASE = {
  * Props: workout, onComplete(), onQuit()
  */
 export default function IntervalPlayer({ workout, onComplete, onQuit }) {
-  const segs = useMemo(() => buildSegments(workout), [workout]);
+  const selectable = hasLengths(workout);
+  const [selectedLen, setSelectedLen] = useState(
+    selectable ? workout.default_length || workout.lengths[0] : null
+  );
+  const segs = useMemo(() => buildSegments(workout, selectedLen), [workout, selectedLen]);
   const total = segs.length;
+  const chosenMins = selectedLen || workout.duration || 0;
 
   const [started, setStarted] = useState(false);
   const [running, setRunning] = useState(false);
@@ -49,7 +54,7 @@ export default function IntervalPlayer({ workout, onComplete, onQuit }) {
           clearInterval(t);
           doneBeep();
           setRunning(false);
-          onCompleteRef.current && onCompleteRef.current();
+          onCompleteRef.current && onCompleteRef.current(chosenMins);
           return;
         }
         goToSegment(nextIdx);
@@ -63,6 +68,10 @@ export default function IntervalPlayer({ workout, onComplete, onQuit }) {
 
   const start = () => {
     unlockAudio();
+    idxRef.current = 0;
+    remRef.current = segs[0]?.secs || 0;
+    setSegIndex(0);
+    setRemaining(segs[0]?.secs || 0);
     setStarted(true);
     setRunning(true);
   };
@@ -72,7 +81,7 @@ export default function IntervalPlayer({ workout, onComplete, onQuit }) {
     if (next >= total) {
       setRunning(false);
       doneBeep();
-      onCompleteRef.current && onCompleteRef.current();
+      onCompleteRef.current && onCompleteRef.current(chosenMins);
       return;
     }
     goToSegment(next);
@@ -105,10 +114,28 @@ export default function IntervalPlayer({ workout, onComplete, onQuit }) {
           <h1 style={{ fontSize: 40, marginTop: 6 }}>{workout.name}</h1>
           <p className="muted" style={{ fontSize: 14.5, lineHeight: 1.5, margin: '8px 0 4px' }}>{workout.desc}</p>
           <div style={styles.meta}>
-            <span>⏱ ~{workout.duration} min</span>
+            <span>⏱ ~{chosenMins} min</span>
             <span>· {workout.blocks?.length || 0} moves</span>
-            {workout.rounds > 1 && <span>· {workout.rounds} rounds</span>}
+            {selectable && <span>· {workout.work_secs}s / {workout.rest_secs}s</span>}
           </div>
+
+          {selectable && (
+            <div style={styles.lenPicker}>
+              <div style={styles.lenLabel}>Choose your length</div>
+              <div style={styles.lenChips}>
+                {workout.lengths.map((L) => (
+                  <button
+                    key={L}
+                    onClick={() => setSelectedLen(L)}
+                    style={{ ...styles.lenChip, ...(selectedLen === L ? styles.lenChipOn : {}) }}
+                  >
+                    {L} min
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div style={styles.previewList}>
             {workout.blocks?.slice(0, 8).map((b, i) => (
               <div key={i} style={styles.previewRow}>
@@ -189,6 +216,11 @@ const styles = {
   wrap: { minHeight: '100vh', padding: '20px 20px 40px', display: 'flex', flexDirection: 'column', alignItems: 'center' },
   startCard: { width: '100%', maxWidth: 400, textAlign: 'center', margin: '0 auto' },
   meta: { display: 'flex', gap: 8, justifyContent: 'center', fontSize: 13, color: 'var(--muted)', fontWeight: 600, margin: '4px 0 16px', flexWrap: 'wrap' },
+  lenPicker: { margin: '4px 0 16px' },
+  lenLabel: { fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: 'var(--muted)', marginBottom: 8 },
+  lenChips: { display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' },
+  lenChip: { padding: '10px 14px', borderRadius: 999, border: '1.5px solid var(--border)', background: 'var(--white)', fontSize: 14, fontWeight: 700, color: 'var(--text)', minWidth: 62 },
+  lenChipOn: { background: T.pink, borderColor: T.pink, color: '#fff' },
   previewList: { textAlign: 'left', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 16, padding: 12, marginBottom: 18 },
   previewRow: { display: 'flex', alignItems: 'center', gap: 10, padding: '6px 4px', fontSize: 14, fontWeight: 600 },
   previewNo: { width: 22, height: 22, borderRadius: 999, background: 'var(--off)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: 'var(--muted)', flexShrink: 0 },
